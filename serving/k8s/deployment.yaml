@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-serving
+  labels:
+    app: ml-serving
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ml-serving
+  template:
+    metadata:
+      labels:
+        app: ml-serving
+    spec:
+      containers:
+        - name: app
+          image: kiranitth/ml-serving-app  # Replace with Docker Hub image for remote deploy
+          ports:
+            - containerPort: 80

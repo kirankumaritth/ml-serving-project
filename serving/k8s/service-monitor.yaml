@@ -1,0 +1,17 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: ml-serving-monitor
+  labels:
+    release: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: ml-serving
+  namespaceSelector:
+    matchNames:
+      - ml-serving
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
