@@ -26,6 +26,7 @@ jobs:
         run: |
           pip install -r serving/requirements.txt
           pip install pytest httpx
+          export PYTHONPATH="${GITHUB_WORKSPACE}"
           pytest tests/
 
       - name: Set up Docker Buildx
