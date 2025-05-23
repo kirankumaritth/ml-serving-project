@@ -25,7 +25,7 @@ jobs:
       - name: Install dependencies and run tests
         run: |
           pip install -r serving/requirements.txt
-          pip install pytest
+          pip install pytest httpx
           pytest tests/
 
       - name: Set up Docker Buildx
