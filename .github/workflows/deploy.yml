@@ -1,9 +1,4 @@
-name: CI/CD Pipeline.
-
-  run: |
-    pip install -r serving/requirements.txt
-    pip install pytest
-    pytest tests/
+name: CI/CD Pipeline
 
 on:
   push:
@@ -30,6 +25,7 @@ jobs:
       - name: Install dependencies and run tests
         run: |
           pip install -r serving/requirements.txt
+          pip install pytest
           pytest tests/
 
       - name: Set up Docker Buildx
