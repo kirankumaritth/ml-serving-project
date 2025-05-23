@@ -1,6 +1,15 @@
+from fastapi import FastAPI, HTTPException, Request, Response
+from pydantic import BaseModel
+from transformers import pipeline
 from prometheus_client import Counter, generate_latest, CONTENT_TYPE_LATEST
-from fastapi import Request, Response
+import threading
 
+# Initialize FastAPI
+app = FastAPI()
+
+# -------------------
+# Prometheus Metrics
+# -------------------
 REQUEST_COUNT = Counter("request_count", "App Request Count", ['app_name', 'endpoint'])
 
 @app.middleware("http")
@@ -13,13 +22,9 @@ async def metrics_middleware(request: Request, call_next):
 def metrics():
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from transformers import pipeline
-import threading
-
-app = FastAPI()
-
+# -------------------
+# Model Serving Logic
+# -------------------
 status = "NOT_DEPLOYED"
 model_id = None
 model_pipeline = None
@@ -31,31 +36,27 @@ class CompletionRequest(BaseModel):
 def deploy_model(data: dict):
     global model_id, model_pipeline, status
 
-    try:
-        requested_model = data.get("model_id", "")
-        if not requested_model:
-            raise ValueError("Model ID not provided.")
-
-        status = "DEPLOYING"
-        
-        def load_model():
-            global model_pipeline, status, model_id
-            try:
-                model_pipeline = pipeline("text-generation", model=requested_model)
-                model_id = requested_model
-                status = "RUNNING"
-            except Exception as e:
-                print(f"Model loading error: {e}")
-                status = "NOT_DEPLOYED"
-        
-        thread = threading.Thread(target=load_model)
-        thread.start()
-
-        return {"status": "success", "model_id": requested_model}
-
-    except Exception as e:
+    requested_model = data.get("model_id", "")
+    if not requested_model:
         status = "NOT_DEPLOYED"
-        return {"status": "error", "message": str(e)}
+        return {"status": "error", "message": "Model ID not provided."}
+
+    status = "DEPLOYING"
+
+    def load_model():
+        global model_pipeline, status, model_id
+        try:
+            model_pipeline = pipeline("text-generation", model=requested_model)
+            model_id = requested_model
+            status = "RUNNING"
+        except Exception as e:
+            print(f"Model loading error: {e}")
+            status = "NOT_DEPLOYED"
+
+    thread = threading.Thread(target=load_model)
+    thread.start()
+
+    return {"status": "success", "model_id": requested_model}
 
 @app.get("/status")
 def get_status():
@@ -72,7 +73,7 @@ def generate_completion(request: CompletionRequest):
     
     user_msg = request.messages[0]["content"]
     result = model_pipeline(user_msg, max_length=50, num_return_sequences=1)
-    
+
     return {
         "status": "success",
         "response": [{"role": "assistant", "message": result[0]['generated_text']}]
